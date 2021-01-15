@@ -14,7 +14,6 @@ import xbmcaddon
 import inputstreamhelper
 import time
 from dateutil import parser
-import re
 
 class ItemClass(object):
     pass
@@ -33,9 +32,9 @@ w = WaipuAPI(username, password, provider)
 
 itemList = []
 
-def itemExits(title, list):
-    for item in list:
-        if (item.title in title):
+def itemExits(assetID, a_list):
+    for a_item in a_list:
+        if (a_item.assetId == assetID):
             return True
     return False
 
@@ -106,9 +105,11 @@ def list_recordings():
         if 'locked' in recording and recording['locked']:
             continue
 
-        match = re.search(s_filter, recording['epgData']['title'])
-        if(match is None):
-            continue
+        # check we have a filter
+        if(s_filter != "0"):
+            # skip itens, if wrong assetId
+            if(recording['epgData']["assetId"] != s_filter):
+                continue
 
         # new item
         item = ItemClass()
@@ -121,6 +122,7 @@ def list_recordings():
         item.genre = recording['epgData']['genre']
         item.description = recording['epgData']['description']
 
+        item.assetId = recording['epgData']["assetId"]
         item.episodeId = recording['epgData']['episodeId']
         item.episodeTitle = recording['epgData']['episodeTitle']
         item.episode = recording['epgData']['episode']
@@ -135,14 +137,14 @@ def list_recordings():
         item.count = 1
 
         # check if we are in the overview of recordings
-        if (s_filter == ".*?"):
+        if (s_filter == "0"):
             # new item
-            if not itemExits (item.title, itemList):
+            if not itemExits(item.assetId, itemList):
                 itemList.append(item)
             else:
                 # item exist, inc counter
                 for aItem in itemList:
-                    if (aItem.title in item.title):
+                    if (aItem.assetId in item.assetId):
                         aItem.count = aItem.count + 1
         else:
             # not the overview, so add all items
@@ -155,7 +157,7 @@ def list_recordings():
     for item in itemList:
 
         # check for more than 1 recording
-        if(item.count > 1) and (s_filter == ".*?"):
+        if(item.count > 1) and (s_filter == "0"):
             list_item = xbmcgui.ListItem(label= "[B]" +  item.title +  "[/B]" +  " - " + str(item.count) + " " + _T(32031), iconImage="DefaultFolder.png")
 
             if(item.previewImage is not None):
@@ -168,8 +170,7 @@ def list_recordings():
                 'mediatype': 'video'}
 
             list_item.setInfo('video', metadata)
-
-            xbmcplugin.addDirectoryItem(plugin.handle, plugin.url_for(list_recordings, s_filter=item.title), list_item, isFolder=True)
+            xbmcplugin.addDirectoryItem(plugin.handle, plugin.url_for(list_recordings, s_filter=item.assetId), list_item, isFolder=True)
 
         else:
             # normal display
@@ -226,11 +227,20 @@ def list_recordings():
 
             list_item.setProperty('IsPlayable', 'true')
             url = plugin.url_for(play_recording, recording_id= item.recordID)
+
+            PATH = plugin.url_for(delete_recordings)
+            xbmc.log("waipu test: " + PATH, level=xbmc.LOGDEBUG)
+
+            list_item.addContextMenuItems([("Aufnahme löschen", 'RunPlugin(%s?recording_id=%s)' % (PATH, item.recordID))])
             xbmcplugin.addDirectoryItem(plugin.handle, url, list_item, isFolder=False)
 
     # Finish creating a virtual folder.
     xbmcplugin.endOfDirectory(plugin.handle)
 
+@plugin.route('/delete-recordings')
+def delete_recordings():
+
+    xbmc.log("waipu DELETE!", level=xbmc.LOGDEBUG)
 
 def filter_pictograms(data, filter=True):
     if filter:
@@ -602,7 +612,7 @@ def index():
 
     # recordings list (overview)
     list_item = xbmcgui.ListItem(label=_T(32031), iconImage="DefaultFolder.png")
-    xbmcplugin.addDirectoryItem(plugin.handle, plugin.url_for(list_recordings, s_filter=".*?"), list_item, isFolder=True)
+    xbmcplugin.addDirectoryItem(plugin.handle, plugin.url_for(list_recordings, s_filter="0"), list_item, isFolder=True)
 
     # Finish creating a virtual folder.
     xbmcplugin.endOfDirectory(plugin.handle)
