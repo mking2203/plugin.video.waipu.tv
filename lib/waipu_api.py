@@ -180,7 +180,7 @@ class WaipuAPI:
         url = "https://epg.waipu.tv/api/channels/" + channelId + "/programs/current"
         r = requests.get(url, headers=headers)
         return r.json()
-    
+
     def getEPGForChannel(self, channelId):
         self.getToken()
         starttime = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(time.time() - 3*24 * 60 * 60));
@@ -190,7 +190,7 @@ class WaipuAPI:
         url = "https://epg.waipu.tv/api/channels/" + channelId + "/programs?startTime="+starttime+"&stopTime="+endtime
         r = requests.get(url, headers=headers)
         return r.json()
-    
+
     def getUrl(self, url):
         self.getToken()
         headers = {'User-Agent': self.user_agent,
@@ -217,10 +217,27 @@ class WaipuAPI:
                    'Authorization': 'Bearer ' + self._auth['access_token']}
         r = requests.get(url, data=payload, headers=headers)
         return r.json()
-    
+
     def open_eu_network(self):
         self.getToken()
         url = "https://eunet.waipu.tv/api/open-eu-network"
         headers = {'User-Agent': self.user_agent,
                    'Authorization': 'Bearer ' + self._auth['access_token']}
         return requests.post(url, headers=headers).status_code
+
+    def deleteRecordings(self, recordId):
+        self.getToken()
+        url = "https://recording.waipu.tv/api/recordings"
+
+        recList = []
+        recList.append(recordId)
+
+        payload = {'ids': recList}
+        headers = {'User-Agent': self.user_agent,
+                   'Referer' : 'https://play.waipu.tv/aufnahmen',
+                   'content-type' : 'application/vnd.waipu.pvr-recording-ids-v2+json',
+                   'Accept': 'application/vnd.waipu.recordings-v2+json',
+                   'Authorization': 'Bearer ' + self._auth['access_token']}
+
+        r = requests.delete(url, data=json.dumps(payload), headers=headers)
+        return r.status_code

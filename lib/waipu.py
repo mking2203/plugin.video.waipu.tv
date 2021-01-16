@@ -20,9 +20,9 @@ class ItemClass(object):
 
 plugin = routing.Plugin()
 
-username = xbmcplugin.getSetting(plugin.handle, "username")
-password = xbmcplugin.getSetting(plugin.handle, "password")
-provider = int(xbmcplugin.getSetting(plugin.handle, "provider_select"))
+username = xbmcaddon.Addon().getSetting("username")
+password = xbmcaddon.Addon().getSetting("password")
+provider = int(xbmcaddon.Addon().getSetting("provider_select"))
 
 # open settings,
 if not username or not password:
@@ -229,9 +229,10 @@ def list_recordings():
             url = plugin.url_for(play_recording, recording_id= item.recordID)
 
             PATH = plugin.url_for(delete_recordings)
-            xbmc.log("waipu test: " + PATH, level=xbmc.LOGDEBUG)
+            #s_Title = label_dat.encode('ascii', 'ignore').decode('ascii')
+            s_Title = ''
 
-            list_item.addContextMenuItems([("Aufnahme löschen", 'RunPlugin(%s?recording_id=%s)' % (PATH, item.recordID))])
+            list_item.addContextMenuItems([("Aufnahme löschen", 'RunPlugin(%s?recording_id=%s&title=%s)' % (PATH, item.recordID, s_Title))])
             xbmcplugin.addDirectoryItem(plugin.handle, url, list_item, isFolder=False)
 
     # Finish creating a virtual folder.
@@ -240,7 +241,15 @@ def list_recordings():
 @plugin.route('/delete-recordings')
 def delete_recordings():
 
-    xbmc.log("waipu DELETE!", level=xbmc.LOGDEBUG)
+    # get filter for sub-folders
+    s_recordId = plugin.args['recording_id'][0]
+
+    ok = False
+    ok = xbmcgui.Dialog().yesno(xbmcaddon.Addon().getAddonInfo('name'), "Möchten Sie diese Aufnahme", "löschen?")
+
+    if (ok):
+        result = w.deleteRecordings(s_recordId)
+        xbmc.log("waipu DELETE " + s_recordId + " result = " + str(result), level=xbmc.LOGDEBUG)
 
 def filter_pictograms(data, filter=True):
     if filter:
