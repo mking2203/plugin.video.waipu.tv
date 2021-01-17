@@ -14,6 +14,7 @@ import xbmcaddon
 import inputstreamhelper
 import time
 from dateutil import parser
+import urllib
 
 class ItemClass(object):
     pass
@@ -228,28 +229,33 @@ def list_recordings():
             list_item.setProperty('IsPlayable', 'true')
             url = plugin.url_for(play_recording, recording_id= item.recordID)
 
-            PATH = plugin.url_for(delete_recordings)
-            #s_Title = label_dat.encode('ascii', 'ignore').decode('ascii')
-            s_Title = ''
+            # path to callback and title (in ascii)
+            s_path = plugin.url_for(delete_recordings)
+            s_Title = label_dat.encode('ascii','ignore').decode('ascii')
 
-            list_item.addContextMenuItems([("Aufnahme löschen", 'RunPlugin(%s?recording_id=%s&title=%s)' % (PATH, item.recordID, s_Title))])
+            list_item.addContextMenuItems([("Aufnahme löschen", 'RunPlugin(%s?recording_id=%s&title=%s)' % (s_path, item.recordID, s_Title))])
             xbmcplugin.addDirectoryItem(plugin.handle, url, list_item, isFolder=False)
 
     # Finish creating a virtual folder.
-    xbmcplugin.endOfDirectory(plugin.handle)
+    xbmcplugin.endOfDirectory(plugin.handle, cacheToDisc=False)
 
 @plugin.route('/delete-recordings')
 def delete_recordings():
 
     # get filter for sub-folders
     s_recordId = plugin.args['recording_id'][0]
+    # get title
+    s_title = plugin.args['title'][0]
+    s_title = s_title.encode('utf8','ignore')
 
     ok = False
-    ok = xbmcgui.Dialog().yesno(xbmcaddon.Addon().getAddonInfo('name'), "Möchten Sie diese Aufnahme", "löschen?")
+    ok = xbmcgui.Dialog().yesno(xbmcaddon.Addon().getAddonInfo('name'), "Möchten Sie die Aufnahme\n" +  s_title + "\nlöschen?")
 
     if (ok):
         result = w.deleteRecordings(s_recordId)
         xbmc.log("waipu DELETE " + s_recordId + " result = " + str(result), level=xbmc.LOGDEBUG)
+
+        xbmc.executebuiltin('Container.Refresh')
 
 def filter_pictograms(data, filter=True):
     if filter:
